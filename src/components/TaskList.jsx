@@ -1,6 +1,9 @@
 import TaskItem from './TaskItem';
+import TaskSkeleton from './TaskSkeleton';
 
-function TaskList({ tasks, onToggleTask, onDeleteTask }) {
+function TaskList({ tasks, isLoading, onToggleTask, onDeleteTask }) {
+  if (isLoading) return <TaskSkeleton />;
+
   if (tasks.length === 0) {
     return (
       <div className="empty-state">
