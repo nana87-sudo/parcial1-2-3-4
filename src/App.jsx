@@ -1,30 +1,18 @@
-import Header from './components/Header';
-import TaskForm from './components/TaskForm';
-import TaskList from './components/TaskList';
-import { useTasks } from './hooks/useTasks';
+import { Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import About from './pages/About';
+import NotFound from './pages/NotFound';
 
 function App() {
-  const {
-    tasks,
-    addTask,
-    toggleTask,
-    deleteTask,
-    pendingCount,
-    completedCount,
-  } = useTasks();
-
   return (
     <div className="app">
-      <Header pendingCount={pendingCount} completedCount={completedCount} />
-
-      <main className="main">
-        <TaskForm onAddTask={addTask} />
-        <TaskList
-          tasks={tasks}
-          onToggleTask={toggleTask}
-          onDeleteTask={deleteTask}
-        />
-      </main>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/acerca" element={<About />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </div>
   );
 }
