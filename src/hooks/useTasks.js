@@ -1,46 +1,81 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  subscribeToTasks,
+  createTask,
+  updateTaskStatus,
+  removeTask,
+} from '../services/taskService';
 
 /**
- * Custom hook que encapsula TODA la lógica de negocio de las tareas.
- * La UI solo consume su API pública; no sabe cómo se almacenan los datos.
+ * Hook que conecta la UI con Firestore.
+ * Expone la misma API que en el Parcial 1, más `isLoading` y `error`.
  */
 export function useTasks() {
   const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const addTask = (title) => {
+  useEffect(() => {
+    const unsubscribe = subscribeToTasks(
+      (fetchedTasks) => {
+        setTasks(fetchedTasks);
+        setIsLoading(false);
+      },
+      (firestoreError) => {
+        console.error(firestoreError);
+        setError('No se pudieron cargar las tareas. Revisa tu conexión.');
+        setIsLoading(false);
+      }
+    );
+
+    // Limpieza: evita fugas de memoria al desmontar el componente
+    return unsubscribe;
+  }, []);
+
+  const runAction = async (action, errorMessage) => {
+    try {
+      await action();
+      return true;
+    } catch (actionError) {
+      console.error(actionError);
+      setError(errorMessage);
+      return false;
+    }
+  };
+
+  const addTask = async (title) => {
     const cleanTitle = title.trim();
     if (!cleanTitle) return false;
 
-    const newTask = {
-      id: crypto.randomUUID(),
-      title: cleanTitle,
-      completed: false,
-      createdAt: Date.now(),
-    };
-
-    setTasks((previousTasks) => [newTask, ...previousTasks]);
-    return true;
-  };
-
-  const toggleTask = (taskId) => {
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
+    return runAction(
+      () => createTask(cleanTitle),
+      'No se pudo agregar la tarea. Inténtalo de nuevo.'
     );
   };
 
-  const deleteTask = (taskId) => {
-    setTasks((previousTasks) =>
-      previousTasks.filter((task) => task.id !== taskId)
+  const toggleTask = async (taskId) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) return false;
+
+    return runAction(
+      () => updateTaskStatus(taskId, !task.completed),
+      'No se pudo actualizar la tarea.'
     );
   };
+
+  const deleteTask = (taskId) =>
+    runAction(() => removeTask(taskId), 'No se pudo eliminar la tarea.');
+
+  const clearError = () => setError(null);
 
   const completedCount = tasks.filter((task) => task.completed).length;
   const pendingCount = tasks.length - completedCount;
 
   return {
     tasks,
+    isLoading,
+    error,
+    clearError,
     addTask,
     toggleTask,
     deleteTask,
